@@ -11,6 +11,7 @@ export const clientEnv = {
   solanaExplorer: process.env.NEXT_PUBLIC_SOLANA_EXPLORER ?? "https://explorer.solana.com",
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+  usdcMintAddress: process.env.NEXT_PUBLIC_USDC_MINT_ADDRESS ?? "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
 };
 
 export function explorerTxUrl(signature: string): string {

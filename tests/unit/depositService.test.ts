@@ -24,7 +24,7 @@ describe("depositService — deposit intent", () => {
     expect(fake._calls.length).toBe(0);
   });
 
-  it("creates a pending deposit row and returns the destination wallet + expected lamports", async () => {
+  it("creates a pending deposit row and returns the destination wallet + expected USDC base units", async () => {
     fake = createFakeSupabase({
       from: {
         deposits: [
@@ -33,9 +33,9 @@ describe("depositService — deposit intent", () => {
               id: "deposit-1",
               user_id: "user-1",
               wallet_address: TEST_USER_WALLET,
-              requested_amount_minor_units: "10000000", // ₦100,000.00
+              requested_amount_minor_units: "10000000", // $100,000.00
               actual_amount_minor_units: null,
-              asset: "SOL",
+              asset: "USDC",
               transaction_signature: null,
               status: "pending",
               confirmed_at: null,
@@ -51,8 +51,9 @@ describe("depositService — deposit intent", () => {
 
     expect(intent.destinationWallet).toBe(TEST_DEPOSIT_WALLET);
     expect(intent.deposit.status).toBe("pending");
-    // requested ₦100,000.00 at rate 150,000,000 minor units / SOL => 100000/1500000 SOL => 0.066666... SOL, ceil'd to lamports
-    expect(BigInt(intent.expectedLamports)).toBeGreaterThan(0n);
+    // $100,000.00 == 10,000,000 minor units; USDC has 6 decimals, so 1 minor
+    // unit (=$0.01) is exactly 10,000 base units.
+    expect(BigInt(intent.expectedUsdcBaseUnits)).toBe(100_000_000_000n);
   });
 });
 

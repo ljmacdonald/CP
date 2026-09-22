@@ -10,7 +10,7 @@ describe("financialCalculationService", () => {
     it("accrues zero on day zero", () => {
       const start = new Date("2025-01-01T00:00:00Z");
       const result = calculateAccrual({
-        principal: 10_000_00n, // ₦10,000.00
+        principal: 10_000_00n, // $10,000.00
         startDate: start,
         currentDate: start,
         maturityDate: new Date("2025-06-30T00:00:00Z"),
@@ -26,7 +26,7 @@ describe("financialCalculationService", () => {
       const start = new Date("2025-01-01T00:00:00Z");
       const oneDayLater = new Date("2025-01-02T00:00:00Z");
       const result = calculateAccrual({
-        principal: 365_00n, // ₦365.00 chosen so daily accrual is a whole minor unit
+        principal: 365_00n, // $365.00 chosen so daily accrual is a whole minor unit
         startDate: start,
         currentDate: oneDayLater,
         maturityDate: new Date("2025-07-01T00:00:00Z"),
@@ -34,7 +34,7 @@ describe("financialCalculationService", () => {
       });
 
       expect(result.elapsedDays).toBe(1);
-      expect(result.accruedReturn).toBe(1_00n); // ₦1.00
+      expect(result.accruedReturn).toBe(1_00n); // $1.00
       expect(result.currentValue).toBe(366_00n);
     });
 
@@ -67,7 +67,7 @@ describe("financialCalculationService", () => {
       const start = new Date("2025-01-01T00:00:00Z");
       const maturity = new Date("2025-07-01T00:00:00Z"); // 181 days
       const result = calculateAccrual({
-        principal: 1_000_000_00n, // ₦1,000,000.00
+        principal: 1_000_000_00n, // $1,000,000.00
         startDate: start,
         currentDate: maturity,
         maturityDate: maturity,

@@ -24,21 +24,21 @@ describe("money", () => {
   });
 
   describe("formatMinorUnits", () => {
-    it("formats a bigint amount with the naira symbol and thousands separators", () => {
-      expect(formatMinorUnits(10_000_000n)).toBe("₦100,000.00");
+    it("formats a bigint amount with the dollar symbol and thousands separators", () => {
+      expect(formatMinorUnits(10_000_000n)).toBe("$100,000.00");
     });
 
     it("formats a decimal-string amount (as returned by the API over JSON)", () => {
-      expect(formatMinorUnits("150000")).toBe("₦1,500.00");
+      expect(formatMinorUnits("150000")).toBe("$1,500.00");
     });
 
     it("formats zero correctly", () => {
-      expect(formatMinorUnits(0n)).toBe("₦0.00");
+      expect(formatMinorUnits(0n)).toBe("$0.00");
     });
 
     it("round-trips with toMinorUnits", () => {
       const minor = toMinorUnits("42.07");
-      expect(formatMinorUnits(minor)).toBe("₦42.07");
+      expect(formatMinorUnits(minor)).toBe("$42.07");
     });
   });
 });

@@ -36,12 +36,12 @@ export function toMinorUnits(majorAmount: number | string): MinorUnits {
  * amounts as decimal strings; this accepts either so the same formatter
  * works server-side (bigint) and client-side (string from fetch()).
  */
-export function formatMinorUnits(amount: MinorUnits | string, currencySymbol = "₦"): string {
+export function formatMinorUnits(amount: MinorUnits | string, currencySymbol = "$"): string {
   const value = typeof amount === "string" ? BigInt(amount) : amount;
   return formatMinorUnitsBigint(value, currencySymbol);
 }
 
-function formatMinorUnitsBigint(amount: MinorUnits, currencySymbol = "₦"): string {
+function formatMinorUnitsBigint(amount: MinorUnits, currencySymbol = "$"): string {
   const negative = amount < 0n;
   const abs = negative ? -amount : amount;
   const whole = abs / MINOR_UNITS_PER_MAJOR;

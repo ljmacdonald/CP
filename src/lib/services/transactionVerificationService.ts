@@ -1,9 +1,9 @@
 import "server-only";
 import { z } from "zod";
 import { isSignature, signature as toSignature } from "@solana/kit";
-import { getSolanaRpc, LAMPORTS_PER_SOL } from "@/lib/solana/rpc";
-import { getSolToNgnRateMinorUnits } from "@/lib/env";
-import { bigIntFloorDiv } from "@/lib/money";
+import { getSolanaRpc } from "@/lib/solana/rpc";
+import { getUsdcMintAddress } from "@/lib/env";
+import { getUsdcTokenAccount, usdcBaseUnitsToMinorUnits } from "@/lib/solana/usdc";
 
 export type VerificationFailureReason =
   | "invalid_signature_format"
@@ -18,7 +18,7 @@ export type VerificationFailureReason =
 
 export interface VerificationSuccess {
   ok: true;
-  lamports: bigint;
+  usdcBaseUnits: bigint;
   amountMinorUnits: bigint;
   slot: string;
   blockTime: number | null;
@@ -31,14 +31,20 @@ export interface VerificationFailure {
 
 export type VerificationResult = VerificationSuccess | VerificationFailure;
 
-const parsedTransferInfoSchema = z.object({
+const transferCheckedInfoSchema = z.object({
   source: z.string(),
   destination: z.string(),
-  lamports: z.number().nonnegative(),
+  mint: z.string(),
+  authority: z.string().optional(),
+  tokenAmount: z.object({
+    amount: z.string(),
+    decimals: z.number(),
+  }),
 });
 
 export interface VerifyDepositParams {
   transactionSignature: string;
+  /** The deposit wallet's own address — its USDC associated token account is derived from this. */
   expectedDestinationWallet: string;
   expectedSenderWallet: string;
   /** Required commitment level before the deposit can be trusted. */
@@ -48,10 +54,14 @@ export interface VerifyDepositParams {
 /**
  * The one place in the codebase allowed to say a deposit happened. Re-derives
  * everything from the chain itself rather than trusting any client-supplied
- * amount: destination, sender, asset, and amount all come from the parsed
- * on-chain instruction, never from the request body.
+ * amount: destination, sender, asset (mint), and amount all come from the
+ * parsed on-chain instruction, never from the request body. Only the SPL
+ * Token program's `transferChecked` instruction is accepted (not the
+ * Token-2022 program, and not the older unchecked `transfer` instruction,
+ * which doesn't carry the mint) — a documented, narrow surface for this
+ * prototype's single supported asset (devnet USDC).
  */
-export async function verifySolTransferTransaction(
+export async function verifyUsdcTransferTransaction(
   params: VerifyDepositParams
 ): Promise<VerificationResult> {
   const { transactionSignature, expectedDestinationWallet, expectedSenderWallet } = params;
@@ -84,36 +94,40 @@ export async function verifySolTransferTransaction(
     return { ok: false, reason: "transaction_failed" };
   }
 
+  const mintAddress = getUsdcMintAddress();
+  const expectedDestinationTokenAccount = getUsdcTokenAccount(expectedDestinationWallet, mintAddress);
+
   const instructions = transaction.transaction.message.instructions;
 
   for (const instruction of instructions) {
     if (!("parsed" in instruction)) continue;
-    if (instruction.program !== "system") continue;
+    if (instruction.program !== "spl-token") continue;
     const parsed = instruction.parsed as { type: string; info?: unknown };
-    if (parsed.type !== "transfer") continue;
+    if (parsed.type !== "transferChecked") continue;
 
-    const infoResult = parsedTransferInfoSchema.safeParse(parsed.info);
+    const infoResult = transferCheckedInfoSchema.safeParse(parsed.info);
     if (!infoResult.success) continue;
     const info = infoResult.data;
 
-    if (info.destination !== expectedDestinationWallet) {
+    if (info.destination !== expectedDestinationTokenAccount) {
       continue;
     }
-    if (info.source !== expectedSenderWallet) {
+    if (info.mint !== mintAddress) {
+      return { ok: false, reason: "unsupported_asset" };
+    }
+    if (!info.authority || info.authority !== expectedSenderWallet) {
       return { ok: false, reason: "wrong_sender" };
     }
-    if (info.lamports <= 0) {
+
+    const usdcBaseUnits = BigInt(info.tokenAmount.amount);
+    if (usdcBaseUnits <= 0n) {
       return { ok: false, reason: "zero_amount" };
     }
 
-    const lamports = BigInt(Math.round(info.lamports));
-    const rate = getSolToNgnRateMinorUnits(); // minor units per 1 SOL
-    const amountMinorUnits = bigIntFloorDiv(lamports * rate, LAMPORTS_PER_SOL);
-
     return {
       ok: true,
-      lamports,
-      amountMinorUnits,
+      usdcBaseUnits,
+      amountMinorUnits: usdcBaseUnitsToMinorUnits(usdcBaseUnits),
       slot: transaction.slot.toString(),
       blockTime: transaction.blockTime !== null ? Number(transaction.blockTime) : null,
     };

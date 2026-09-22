@@ -21,7 +21,7 @@ test("dashboard update: a confirmed deposit updates the portfolio value live via
       wallet_address: TEST_USER.walletAddress,
       requested_amount_minor_units: "10000000",
       actual_amount_minor_units: "10000000",
-      asset: "SOL",
+      asset: "USDC",
       transaction_signature: "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi",
       status: "confirmed",
       confirmed_at: new Date().toISOString(),
@@ -42,9 +42,9 @@ test("dashboard update: a confirmed deposit updates the portfolio value live via
 
   await gotoResilient(page, "/dashboard");
 
-  await expect(page.getByText("₦0.00").first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("$0.00").first()).toBeVisible({ timeout: 15_000 });
 
   // The SSE snapshot should replace the zeroed values without a page reload.
-  await expect(page.getByText("₦110,000.00").first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("$110,000.00").first()).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText(/deposit confirmed/i)).toBeVisible();
 });

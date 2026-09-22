@@ -97,7 +97,7 @@ export function PerformanceChart({ data }: { data: PerformancePoint[] }) {
                 axisLine={false}
                 tick={{ fontSize: 11, fill: "var(--ink-faint)" }}
                 width={56}
-                tickFormatter={(v: number) => `₦${(v / 1000).toFixed(0)}k`}
+                tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
               />
               <Tooltip
                 formatter={(value) => [formatMinorUnits(BigInt(Math.round(Number(value) * 100))), "Value"]}

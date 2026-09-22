@@ -17,7 +17,9 @@ const serverEnvSchema = z.object({
   DEPOSIT_WALLET_ADDRESS: z.string().optional(),
   ADMIN_WALLET_ADDRESSES: z.string().optional(),
   SESSION_SECRET: z.string().min(16).default("dev-only-insecure-secret-change-me-1234"),
-  SOL_TO_NGN_RATE_MINOR_UNITS: z.string().optional(),
+  // Circle's official Solana devnet USDC mint by default — see
+  // https://developers.circle.com/stablecoins/docs/usdc-on-test-networks
+  NEXT_PUBLIC_USDC_MINT_ADDRESS: z.string().default("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
@@ -55,8 +57,6 @@ export function getDepositWalletAddress(): string {
   return env.DEPOSIT_WALLET_ADDRESS;
 }
 
-/** SOL -> NGN (minor units, kobo) mock exchange rate for the prototype. */
-export function getSolToNgnRateMinorUnits(): bigint {
-  const env = getServerEnv();
-  return BigInt(env.SOL_TO_NGN_RATE_MINOR_UNITS ?? "150000000"); // 1 SOL ≈ ₦1,500,000.00
+export function getUsdcMintAddress(): string {
+  return getServerEnv().NEXT_PUBLIC_USDC_MINT_ADDRESS;
 }

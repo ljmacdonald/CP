@@ -1,9 +1,8 @@
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { getDepositWalletAddress, getSolToNgnRateMinorUnits } from "@/lib/env";
-import { LAMPORTS_PER_SOL } from "@/lib/solana/rpc";
-import { bigIntCeilDiv } from "@/lib/money";
-import { verifySolTransferTransaction } from "@/lib/services/transactionVerificationService";
+import { getDepositWalletAddress } from "@/lib/env";
+import { minorUnitsToUsdcBaseUnits } from "@/lib/solana/usdc";
+import { verifyUsdcTransferTransaction } from "@/lib/services/transactionVerificationService";
 import { getDefaultProduct } from "@/lib/services/investmentService";
 import { mapLedgerRpcError } from "@/lib/services/ledgerService";
 import { recordAuditLog } from "@/lib/services/adminService";
@@ -22,7 +21,7 @@ export class DepositError extends Error {
 export interface DepositIntent {
   deposit: DepositsRow;
   destinationWallet: string;
-  expectedLamports: string;
+  expectedUsdcBaseUnits: string;
 }
 
 /** requestedAmountMinorUnits is a UI intent only — never trusted for crediting. */
@@ -37,9 +36,7 @@ export async function createDepositIntent(
 
   const supabase = getSupabaseAdmin();
   const destinationWallet = getDepositWalletAddress();
-  const rate = getSolToNgnRateMinorUnits();
-
-  const expectedLamports = bigIntCeilDiv(requestedAmountMinorUnits * LAMPORTS_PER_SOL, rate);
+  const expectedUsdcBaseUnits = minorUnitsToUsdcBaseUnits(requestedAmountMinorUnits);
 
   const { data, error } = await supabase
     .from("deposits")
@@ -47,7 +44,7 @@ export async function createDepositIntent(
       user_id: userId,
       wallet_address: walletAddress,
       requested_amount_minor_units: requestedAmountMinorUnits.toString(),
-      asset: "SOL",
+      asset: "USDC",
       status: "pending",
     })
     .select("*")
@@ -55,7 +52,7 @@ export async function createDepositIntent(
 
   if (error) throw error;
 
-  return { deposit: data, destinationWallet, expectedLamports: expectedLamports.toString() };
+  return { deposit: data, destinationWallet, expectedUsdcBaseUnits: expectedUsdcBaseUnits.toString() };
 }
 
 export async function getDeposit(depositId: string, userId: string): Promise<DepositsRow | null> {
@@ -150,7 +147,7 @@ export async function verifyAndConfirmDeposit(
     .single();
   if (userError) throw userError;
 
-  const verification = await verifySolTransferTransaction({
+  const verification = await verifyUsdcTransferTransaction({
     transactionSignature: deposit.transaction_signature,
     expectedDestinationWallet: getDepositWalletAddress(),
     expectedSenderWallet: user.wallet_address,

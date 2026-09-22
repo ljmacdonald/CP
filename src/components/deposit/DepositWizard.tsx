@@ -3,12 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import { PublicKey, Transaction } from "@solana/web3.js";
+import {
+  createAssociatedTokenAccountIdempotentInstruction,
+  createTransferCheckedInstruction,
+  getAssociatedTokenAddress,
+} from "@solana/spl-token";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { formatMinorUnits, toMinorUnits } from "@/lib/money";
 import { projectInvestment } from "@/lib/services/financialCalculationService";
-import { explorerTxUrl } from "@/lib/env.client";
+import { explorerTxUrl, clientEnv } from "@/lib/env.client";
+import { USDC_DECIMALS } from "@/lib/solana/usdc";
 import type { InvestmentProductsRow } from "@/types/database";
 
 type Step = "amount" | "confirm" | "submitting" | "confirming" | "verifying" | "success" | "error";
@@ -16,7 +22,7 @@ type Step = "amount" | "confirm" | "submitting" | "confirming" | "verifying" | "
 interface DepositIntentResponse {
   depositId: string;
   destinationWallet: string;
-  expectedLamports: string;
+  expectedUsdcBaseUnits: string;
   requestedAmountMinorUnits: string;
 }
 
@@ -87,7 +93,11 @@ export function DepositWizard() {
     setStatusMessage("Waiting for your wallet...");
 
     try {
-      const destination = new PublicKey(intent.destinationWallet);
+      const mint = new PublicKey(clientEnv.usdcMintAddress);
+      const destinationOwner = new PublicKey(intent.destinationWallet);
+      const sourceAta = await getAssociatedTokenAddress(mint, publicKey);
+      const destinationAta = await getAssociatedTokenAddress(mint, destinationOwner);
+
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
 
       const transaction = new Transaction({
@@ -95,11 +105,19 @@ export function DepositWizard() {
         blockhash,
         lastValidBlockHeight,
       }).add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: destination,
-          lamports: BigInt(intent.expectedLamports),
-        })
+        // Idempotent: creates the deposit wallet's USDC account if this is
+        // its first-ever USDC deposit, no-ops otherwise. The depositor pays
+        // the (tiny, one-time) rent — the deposit wallet's own key is never
+        // needed for this.
+        createAssociatedTokenAccountIdempotentInstruction(publicKey, destinationAta, destinationOwner, mint),
+        createTransferCheckedInstruction(
+          sourceAta,
+          mint,
+          destinationAta,
+          publicKey,
+          BigInt(intent.expectedUsdcBaseUnits),
+          USDC_DECIMALS
+        )
       );
 
       const sig = await sendTransaction(transaction, connection);
@@ -136,7 +154,7 @@ export function DepositWizard() {
         <div className="mt-6">
           <label className="text-xs font-medium uppercase tracking-wider text-ink-faint">Amount</label>
           <div className="mt-2 flex items-center rounded-xl border border-border-strong bg-bg px-4 py-3.5 focus-within:border-ink">
-            <span className="mr-1 text-xl font-semibold text-ink-faint">₦</span>
+            <span className="mr-1 text-xl font-semibold text-ink-faint">$</span>
             <input
               inputMode="decimal"
               placeholder="0.00"
@@ -172,7 +190,7 @@ export function DepositWizard() {
   }
 
   if (step === "confirm" && intent) {
-    const solAmount = (Number(intent.expectedLamports) / 1_000_000_000).toFixed(6);
+    const usdcAmount = (Number(intent.expectedUsdcBaseUnits) / 1_000_000).toFixed(6);
     return (
       <Card className="mx-auto max-w-md p-7 sm:p-8">
         <h1 className="text-xl font-semibold tracking-tight text-ink">Confirm deposit</h1>
@@ -183,8 +201,8 @@ export function DepositWizard() {
 
         <dl className="mt-6 flex flex-col gap-4 rounded-xl border border-border bg-bg p-4 text-sm">
           <Row label="Destination address" value={truncateMiddle(intent.destinationWallet)} mono />
-          <Row label="Asset" value="SOL (Solana devnet)" />
-          <Row label="Exact amount" value={`${solAmount} SOL`} emphasize />
+          <Row label="Asset" value="USDC (Solana devnet)" />
+          <Row label="Exact amount" value={`${usdcAmount} USDC`} emphasize />
           <Row label="Investing" value={formatMinorUnits(intent.requestedAmountMinorUnits)} />
         </dl>
 
@@ -293,7 +311,8 @@ async function waitForConfirmation(
 function mapClientError(error: unknown): string {
   if (error instanceof Error) {
     if (/reject/i.test(error.message)) return "Transaction rejected. You can try again whenever you're ready.";
-    if (/insufficient/i.test(error.message)) return "Your wallet does not have enough SOL for this transaction.";
+    if (/insufficient/i.test(error.message))
+      return "Your wallet does not have enough USDC (or enough SOL to cover the network fee) for this transaction.";
     if (/network|fetch/i.test(error.message)) return "Network unavailable. Please check your connection and try again.";
     return error.message;
   }

@@ -59,7 +59,7 @@ export default function Home() {
             <ExplainerStep
               n="02"
               title="Deposit to invest"
-              body="Send SOL from your wallet. We verify the transaction on-chain before crediting anything."
+              body="Send USDC from your wallet. We verify the transaction on-chain before crediting anything."
             />
             <ExplainerStep
               n="03"

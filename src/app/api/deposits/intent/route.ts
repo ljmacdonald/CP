@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       depositId: intent.deposit.id,
       destinationWallet: intent.destinationWallet,
-      expectedLamports: intent.expectedLamports,
+      expectedUsdcBaseUnits: intent.expectedUsdcBaseUnits,
       requestedAmountMinorUnits: intent.deposit.requested_amount_minor_units,
     });
   } catch (error) {

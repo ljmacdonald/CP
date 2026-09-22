@@ -41,7 +41,7 @@ test("deposit: signing and submitting a transaction credits the portfolio", asyn
   await mockJson(page, "**/api/deposits/intent", {
     depositId: "deposit-1",
     destinationWallet: DEPOSIT_WALLET,
-    expectedLamports: "666666667",
+    expectedUsdcBaseUnits: "100000000000",
     requestedAmountMinorUnits: "10000000",
   });
   await mockJson(page, "**/api/deposits/submit", {
@@ -78,5 +78,5 @@ test("deposit: signing and submitting a transaction credits the portfolio", asyn
   await page.getByRole("button", { name: /confirm.*sign/i }).click();
 
   await expect(page.getByText(/deposit complete/i)).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText("₦100,000.00")).toBeVisible();
+  await expect(page.getByText("$100,000.00")).toBeVisible();
 });

@@ -32,7 +32,7 @@ export async function requestWithdrawal(
     p_user_id: userId,
     p_amount_minor_units: amountMinorUnits.toString(),
     p_destination_wallet: destinationWallet.trim(),
-    p_asset: "SOL",
+    p_asset: "USDC",
   });
 
   if (error) mapLedgerRpcError(error);
@@ -52,7 +52,7 @@ export async function listWithdrawals(userId: string): Promise<WithdrawalsRow[]>
 
 /**
  * Placeholder extension point for a real treasury payout (e.g. a custody
- * service or multisig signer executing a devnet SOL transfer). Not invoked
+ * service or multisig signer executing a devnet USDC transfer). Not invoked
  * automatically in the prototype — see README.
  */
 export async function executeOnChainPayout(_withdrawal: WithdrawalsRow): Promise<never> {
