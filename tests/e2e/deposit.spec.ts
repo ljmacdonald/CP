@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { installFakeWallet } from "./helpers/fakeWallet";
-import { mockJson, mockStream, mockSolanaRpc } from "./helpers/mockApi";
+import { mockJson, mockStreamHang, mockSolanaRpc } from "./helpers/mockApi";
 import { gotoResilient } from "./helpers/navigate";
 import { emptyDashboardSnapshot, PRODUCT } from "./helpers/fixtures";
 
@@ -34,7 +34,7 @@ test("deposit: signing and submitting a transaction credits the portfolio", asyn
       body: JSON.stringify({ userId: "user-1", walletAddress: WALLET_ADDRESS }),
     });
   });
-  await mockStream(page, emptyDashboardSnapshot());
+  await mockStreamHang(page);
   await mockJson(page, "**/api/dashboard", emptyDashboardSnapshot());
   await mockJson(page, "**/api/products/active", { product: PRODUCT });
 

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { installFakeWallet } from "./helpers/fakeWallet";
-import { mockStream, mockJson } from "./helpers/mockApi";
+import { mockStreamHang, mockJson } from "./helpers/mockApi";
 import { gotoResilient } from "./helpers/navigate";
 import { emptyDashboardSnapshot } from "./helpers/fixtures";
 
@@ -35,7 +35,7 @@ test("connect wallet: selecting a wallet signs the user in and lands on the dash
       body: JSON.stringify({ userId: "user-1", walletAddress: WALLET_ADDRESS }),
     });
   });
-  await mockStream(page, emptyDashboardSnapshot());
+  await mockStreamHang(page);
   await mockJson(page, "**/api/dashboard", emptyDashboardSnapshot());
 
   await gotoResilient(page, "/");

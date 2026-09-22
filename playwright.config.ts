@@ -21,7 +21,7 @@ export default defineConfig({
   reporter: [["list"]],
   use: {
     baseURL: BASE_URL,
-    trace: "retain-on-failure",
+    trace: "off",
   },
   projects: [
     {
