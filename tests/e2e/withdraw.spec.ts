@@ -12,7 +12,7 @@ test("withdraw: requesting a quote and confirming redemption credits the cash ba
   await loginAs(context, TEST_USER, baseURL!);
   await mockMe(page, TEST_USER);
 
-  const detail = { ...buildPosition(), performance: performanceSeries(), transactions: [] };
+  const detail = { position: buildPosition(), performance: performanceSeries(), transactions: [] };
   await mockJson(page, "**/api/positions/position-1", detail);
 
   const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();

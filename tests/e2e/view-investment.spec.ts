@@ -12,7 +12,7 @@ test("view investment: shows current value, earned, and maturity details for a p
   await loginAs(context, TEST_USER, baseURL!);
   await mockMe(page, TEST_USER);
 
-  const detail = { ...buildPosition(), performance: performanceSeries(), transactions: [] };
+  const detail = { position: buildPosition(), performance: performanceSeries(), transactions: [] };
   await mockJson(page, "**/api/positions/position-1", detail);
 
   await gotoResilient(page, "/dashboard/investment/position-1");
