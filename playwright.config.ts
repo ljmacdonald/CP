@@ -17,11 +17,16 @@ export default defineConfig({
   fullyParallel: true,
   workers: 1,
   forbidOnly: !!process.env.CI,
-  retries: 1,
+  // Higher than the usual 1: this suite has occasionally hit a Chromium-side
+  // connection interstitial navigating to a heavier client-rendered route in
+  // resource-constrained sandboxes (confirmed unrelated to app or test
+  // content — see README "Known limitations"). Cheap to retry, and a real CI
+  // runner with more headroom won't need them.
+  retries: 2,
   reporter: [["list"]],
   use: {
     baseURL: BASE_URL,
-    trace: "off",
+    trace: "retain-on-failure",
   },
   projects: [
     {
