@@ -1,7 +1,7 @@
 # YIELD
 
 A wallet-first Solana investment dashboard prototype. Connect a Solana wallet,
-deposit devnet SOL, watch a simulated investment position accrue daily, and
+deposit devnet USDC, watch a simulated investment position accrue daily, and
 redeem it back to your wallet — with a backend that never trusts client-supplied
 numbers for anything money-related.
 
@@ -29,23 +29,29 @@ only — no real funds are ever used.
   session without needing to bridge wallet-based auth into Supabase's
   `auth.uid()`/RLS model. (Supabase Realtime could replace this if that bridge
   is added later — see Known limitations.)
-- **Money:** every amount is a `bigint` "minor unit" (2 decimals, e.g. kobo).
+- **Money:** every amount is a `bigint` "minor unit" (2 decimals, i.e. cents).
   Rate math (`src/lib/services/financialCalculationService.ts`) is computed as
   exact `BigInt` ratios (`principal * rateBps * days / (10_000 * 365)`, see
   `src/lib/money.ts`'s `bigIntFloorDiv`/`bigIntCeilDiv`) — since every operand
   is already an integer, this has zero floating-point or repeating-decimal
-  rounding error, and always rounds in the platform's favor.
+  rounding error, and always rounds in the platform's favor. USDC's own
+  6-decimal on-chain representation is converted to/from this 2-decimal minor
+  unit at the chain boundary only (`src/lib/solana/usdc.ts`); everywhere else
+  in the codebase only ever sees minor units.
+- **Deposit asset:** devnet USDC (an SPL token, mint address configurable via
+  `NEXT_PUBLIC_USDC_MINT_ADDRESS`, defaulting to Circle's official devnet
+  USDC). Deposits are pegged 1:1 to the app's displayed dollar amounts — no
+  exchange rate is needed or used.
 
 ### Why this shape connects to real infrastructure without a frontend rewrite
 
 - The frontend never computes a balance, an accrual, or a redemption amount —
-  it only renders whatever the backend returns. Swapping the mock exchange
-  rate (`getSolToNgnRateMinorUnits`) for a real price oracle, or wiring
-  `executeOnChainPayout` (`src/lib/services/withdrawalService.ts`) to a real
-  treasury signer, changes zero frontend code.
-  Accepting an additional asset (e.g. USDC) is a matter of extending
-  `transactionVerificationService`'s instruction parser and `depositService`'s
-  intent builder — the deposit wizard and API contract stay the same.
+  it only renders whatever the backend returns. Wiring `executeOnChainPayout`
+  (`src/lib/services/withdrawalService.ts`) to a real treasury signer changes
+  zero frontend code. Accepting an additional SPL token, or native SOL, is a
+  matter of extending `transactionVerificationService`'s instruction parser
+  and `depositService`'s intent builder — the deposit wizard and API contract
+  stay the same.
 - Every service function has a narrow, typed contract (see `src/lib/services/`)
   that a production implementation could replace independently.
 
@@ -186,12 +192,12 @@ Solana RPC responses (no live Supabase/devnet needed to run these):
   Postgres instance. Run the migrations against a real Supabase project and
   smoke-test the deposit → redemption → withdrawal flow before relying on
   this.
-- **Only native SOL deposits are supported.** `transactionVerificationService`
-  parses System Program `transfer` instructions; adding an SPL token (e.g. a
-  devnet USDC mint) means extending that parser to also handle
-  `spl-token transfer`/`transferChecked` instructions.
-- **The SOL→NGN exchange rate is a fixed mock** (`SOL_TO_NGN_RATE_MINOR_UNITS`),
-  not a live price oracle.
+- **Only one SPL token (devnet USDC) is supported as a deposit asset**, and
+  only via the `transferChecked` instruction (not the legacy `transfer`
+  instruction, which doesn't carry the mint, and not the Token-2022 program).
+  `transactionVerificationService` parses `spl-token` `transferChecked`
+  instructions specifically; accepting native SOL or another SPL token means
+  extending that parser and `depositService`'s intent builder.
 - **Withdrawals are not automatically executed on-chain.** `fn_request_withdrawal`
   atomically debits the user's cash balance and creates a `withdrawals` row,
   but actually broadcasting a payout transaction requires a treasury signing
