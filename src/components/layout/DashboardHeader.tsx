@@ -22,7 +22,7 @@ export function DashboardHeader() {
     <header className="sticky top-0 z-30 border-b border-border bg-bg/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 sm:px-8">
         <div className="flex items-center gap-8">
-          <Link href="/dashboard" className="text-lg font-semibold tracking-tight text-ink">
+          <Link href="/dashboard" prefetch={false} className="text-lg font-semibold tracking-tight text-ink">
             YIELD
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
@@ -32,6 +32,7 @@ export function DashboardHeader() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  prefetch={false}
                   className={active ? "text-ink" : "text-ink-muted transition hover:text-ink"}
                 >
                   {link.label}
