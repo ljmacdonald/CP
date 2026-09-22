@@ -27,7 +27,12 @@ export async function POST(request: Request) {
       depositId: intent.deposit.id,
       destinationWallet: intent.destinationWallet,
       expectedUsdcBaseUnits: intent.expectedUsdcBaseUnits,
-      requestedAmountMinorUnits: intent.deposit.requested_amount_minor_units,
+      // Sent as the bigint we already hold in memory rather than the row
+      // Supabase just returned: PostgREST serializes `bigint` columns as a
+      // plain JSON number, not a string, so round-tripping through the DB
+      // row here would silently re-introduce the same string/bigint contract
+      // violation formatMinorUnits now merely tolerates rather than relies on.
+      requestedAmountMinorUnits: requestedAmountMinorUnits.toString(),
     });
   } catch (error) {
     return handleApiError(error);

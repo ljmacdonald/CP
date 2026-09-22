@@ -32,12 +32,17 @@ export function toMinorUnits(majorAmount: number | string): MinorUnits {
 }
 
 /**
- * bigint does not survive JSON.stringify. API responses send minor-unit
- * amounts as decimal strings; this accepts either so the same formatter
- * works server-side (bigint) and client-side (string from fetch()).
+ * bigint does not survive JSON.stringify, so API responses are meant to send
+ * minor-unit amounts as decimal strings — but a value that started life as a
+ * raw `bigint` column read straight off a Supabase row (rather than being
+ * explicitly computed and `.toString()`'d by a service function first) comes
+ * back from PostgREST as a plain JSON *number*, not a string. Accepting
+ * `number` here too, rather than assuming callers always uphold the
+ * string/bigint contract, is what keeps that case from throwing "Cannot mix
+ * BigInt and other types" the moment such a value reaches formatting.
  */
-export function formatMinorUnits(amount: MinorUnits | string, currencySymbol = "$"): string {
-  const value = typeof amount === "string" ? BigInt(amount) : amount;
+export function formatMinorUnits(amount: MinorUnits | string | number, currencySymbol = "$"): string {
+  const value = typeof amount === "bigint" ? amount : BigInt(amount);
   return formatMinorUnitsBigint(value, currencySymbol);
 }
 

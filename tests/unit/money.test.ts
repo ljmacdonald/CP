@@ -40,5 +40,15 @@ describe("money", () => {
       const minor = toMinorUnits("42.07");
       expect(formatMinorUnits(minor)).toBe("$42.07");
     });
+
+    it("formats a plain number amount without throwing", () => {
+      // PostgREST serializes a `bigint` column as a JSON number (not a
+      // string) when a raw DB row is returned as-is, rather than through a
+      // service that explicitly `.toString()`s it — a real case, not just a
+      // hypothetical: it crashed the deposit confirm screen in production
+      // with "Cannot mix BigInt and other types" because this function used
+      // to assume its input was always already a bigint or a string.
+      expect(formatMinorUnits(10_000_000)).toBe("$100,000.00");
+    });
   });
 });
