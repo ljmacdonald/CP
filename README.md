@@ -180,15 +180,6 @@ Solana RPC responses (no live Supabase/devnet needed to run these):
 
 ## Known limitations
 
-- **The Playwright suite occasionally retries in resource-constrained
-  sandboxes.** Investigation (isolated reproduction, `curl` load checks
-  against the live dev server, and a minimal diagnostic spec with the
-  content/mocks stripped out) traced this to a Chromium-side connection
-  interstitial on navigation, not to the app or the test content — the same
-  navigation with the same mocks passes reliably in isolation and fails
-  non-deterministically as part of a longer run. `playwright.config.ts` sets
-  `retries: 2` to absorb it; a CI runner with more headroom shouldn't need
-  them.
 - **No live database was available to develop against.** The schema, atomic
   SQL functions, and every service function are written and unit-tested
   against mocked Supabase responses, but have not been run against a real

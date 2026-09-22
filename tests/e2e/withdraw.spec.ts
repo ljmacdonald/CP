@@ -38,9 +38,10 @@ test("withdraw: requesting a quote and confirming redemption credits the cash ba
 
   await page.getByRole("button", { name: "Withdraw" }).click({ timeout: 15_000 });
 
-  await expect(page.getByText("₦110,000.00")).toBeVisible();
-  await expect(page.getByText("- ₦5,500.00")).toBeVisible();
-  await expect(page.getByText("₦104,500.00")).toBeVisible();
+  const quotePanel = page.locator("dl");
+  await expect(quotePanel.getByText("₦110,000.00")).toBeVisible();
+  await expect(quotePanel.getByText("- ₦5,500.00")).toBeVisible();
+  await expect(quotePanel.getByText("₦104,500.00")).toBeVisible();
   await expect(page.getByText(/quote valid for/i)).toBeVisible();
 
   await page.getByRole("button", { name: /confirm redemption/i }).click();

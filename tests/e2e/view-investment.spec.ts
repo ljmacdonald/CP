@@ -22,5 +22,5 @@ test("view investment: shows current value, earned, and maturity details for a p
   await expect(page.getByText("₦100,000.00")).toBeVisible(); // original investment
   await expect(page.getByText("₦10,000.00")).toBeVisible(); // earned
   await expect(page.getByText("25.0%")).toBeVisible();
-  await expect(page.getByText("120")).toBeVisible(); // days remaining
+  await expect(page.getByText("120", { exact: true })).toBeVisible(); // days remaining
 });

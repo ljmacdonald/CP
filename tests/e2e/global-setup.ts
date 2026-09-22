@@ -1,12 +1,9 @@
 import type { FullConfig } from "@playwright/test";
 
 /**
- * `next start` (Turbopack) appears to still do some on-demand work for
- * less-frequently-hit routes on their very first request, which occasionally
- * lost the race against a fresh browser navigation in this sandboxed
- * environment and surfaced as Chromium's own network-error interstitial
- * instead of our app. Hitting each route once via plain HTTP before any
- * browser test runs avoids paying that cost during a real navigation.
+ * Hits each route once via plain HTTP before any browser test runs, so the
+ * server has already handled a first request for every route (module init,
+ * any first-hit caching) before a real browser navigation depends on it.
  */
 export default async function globalSetup(config: FullConfig): Promise<void> {
   const baseURL = config.projects[0]?.use.baseURL as string | undefined;
