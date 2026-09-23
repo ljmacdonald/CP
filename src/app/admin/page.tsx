@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { StatTile } from "@/components/ui/StatTile";
 import { Badge, statusTone } from "@/components/ui/Badge";
 import { formatMinorUnits, minorUnitsToMajorNumber } from "@/lib/money";
 import type { AdminMetrics } from "@/lib/services/adminService";
-import type { DepositsRow, WithdrawalsRow, UsersRow, TransactionsRow } from "@/types/database";
+import type { DepositsRow, WithdrawalsRow, UsersRow, TransactionsRow, InvestmentProductsRow } from "@/types/database";
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { credentials: "same-origin" });
@@ -21,6 +23,13 @@ export default function AdminOverviewPage() {
   const [withdrawals, setWithdrawals] = useState<WithdrawalsRow[]>([]);
   const [users, setUsers] = useState<UsersRow[]>([]);
   const [transactions, setTransactions] = useState<TransactionsRow[]>([]);
+  const [products, setProducts] = useState<InvestmentProductsRow[]>([]);
+  const [togglingInvesting, setTogglingInvesting] = useState(false);
+
+  const loadProducts = () =>
+    getJson<{ products: InvestmentProductsRow[] }>("/api/admin/products")
+      .then((r) => setProducts(r.products))
+      .catch(() => {});
 
   useEffect(() => {
     getJson<AdminMetrics>("/api/admin/metrics").then(setMetrics).catch(() => {});
@@ -32,7 +41,35 @@ export default function AdminOverviewPage() {
     getJson<{ transactions: TransactionsRow[] }>("/api/admin/transactions")
       .then((r) => setTransactions(r.transactions))
       .catch(() => {});
+    loadProducts();
   }, []);
+
+  // New deposits require at least one product with status "active" (see
+  // getDefaultProduct) — this toggles the earliest-created one, the same
+  // product that path picks, so this single button is a reliable platform-
+  // wide switch as long as there's only the one seeded product. With more
+  // than one product, use the Products page below for per-product control.
+  const primaryProduct = products[0] ?? null;
+  const investingPaused = primaryProduct ? primaryProduct.status !== "active" : false;
+
+  const toggleInvesting = async () => {
+    if (!primaryProduct) return;
+    setTogglingInvesting(true);
+    try {
+      await fetch("/api/admin/products", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          productId: primaryProduct.id,
+          status: investingPaused ? "active" : "paused",
+        }),
+      });
+      await loadProducts();
+    } finally {
+      setTogglingInvesting(false);
+    }
+  };
 
   const depositChartData = useMemo(() => buildDailySeries(deposits, (d) => d.actual_amount_minor_units), [deposits]);
   const withdrawalChartData = useMemo(
@@ -43,6 +80,41 @@ export default function AdminOverviewPage() {
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-2xl font-semibold tracking-tight text-ink">Admin overview</h1>
+
+      <Card className="flex flex-wrap items-center justify-between gap-4 p-6">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-ink">New investments</h3>
+            {primaryProduct && (
+              <Badge tone={investingPaused ? "warning" : "positive"}>
+                {investingPaused ? "Paused" : "Open"}
+              </Badge>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-ink-muted">
+            {investingPaused
+              ? "Investors cannot start a new deposit right now — the deposit page shows them a paused notice."
+              : "Investors can deposit and open new positions normally."}
+            {products.length > 1 && (
+              <>
+                {" "}
+                Manage individual products on the{" "}
+                <Link href="/admin/products" className="underline underline-offset-2">
+                  Products page
+                </Link>
+                .
+              </>
+            )}
+          </p>
+        </div>
+        <Button
+          variant={investingPaused ? "primary" : "danger"}
+          onClick={toggleInvesting}
+          disabled={!primaryProduct || togglingInvesting}
+        >
+          {togglingInvesting ? "Saving…" : investingPaused ? "Resume investing" : "Pause investing"}
+        </Button>
+      </Card>
 
       <Card className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-3 sm:divide-y-0">
         <StatTile label="Total users" value={metrics ? metrics.totalUsers.toLocaleString() : "—"} />

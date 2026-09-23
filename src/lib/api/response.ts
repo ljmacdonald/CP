@@ -55,6 +55,9 @@ export function handleApiError(error: unknown): NextResponse {
     if (error.message === "invalid_amount") {
       return apiError(400, "invalid_amount", "Enter a valid amount.");
     }
+    if (error.message === "No active investment product configured") {
+      return apiError(409, "investing_paused", "New investments are temporarily paused. Please check back soon.");
+    }
   }
 
   console.error("Unhandled API error:", error);

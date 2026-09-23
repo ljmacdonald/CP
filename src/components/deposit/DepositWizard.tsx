@@ -46,6 +46,7 @@ export function DepositWizard() {
   const { publicKey, sendTransaction } = useWallet();
 
   const [product, setProduct] = useState<InvestmentProductsRow | null>(null);
+  const [pausedMessage, setPausedMessage] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [step, setStep] = useState<Step>("amount");
   const [statusMessage, setStatusMessage] = useState("");
@@ -56,9 +57,15 @@ export function DepositWizard() {
 
   useEffect(() => {
     fetch("/api/products/active", { credentials: "same-origin" })
-      .then((res) => res.json())
-      .then((json) => setProduct(json.product ?? null))
-      .catch(() => {});
+      .then(async (res) => {
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setPausedMessage(json?.error?.message ?? "New investments are temporarily unavailable.");
+          return;
+        }
+        setProduct(json.product ?? null);
+      })
+      .catch(() => setPausedMessage("Could not load investment details. Please try again."));
   }, []);
 
   const projection = useMemo(() => {
@@ -147,6 +154,17 @@ export function DepositWizard() {
   };
 
   if (step === "amount") {
+    if (pausedMessage) {
+      return (
+        <Card className="mx-auto max-w-md p-7 sm:p-8 text-center">
+          <h1 className="text-xl font-semibold tracking-tight text-ink">New investments are paused</h1>
+          <p className="mt-2 text-sm text-ink-muted">{pausedMessage}</p>
+          <Button className="mt-7 w-full" size="lg" onClick={() => router.push("/dashboard")}>
+            Back to dashboard
+          </Button>
+        </Card>
+      );
+    }
     return (
       <Card className="mx-auto max-w-md p-7 sm:p-8">
         <h1 className="text-xl font-semibold tracking-tight text-ink">How much would you like to invest?</h1>
