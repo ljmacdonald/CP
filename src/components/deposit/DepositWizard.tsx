@@ -308,11 +308,20 @@ async function waitForConfirmation(
   throw new Error("Transaction confirmation timed out. It may still confirm — check the Explorer link.");
 }
 
+const NEEDS_DEVNET_SOL_MESSAGE =
+  "Your wallet needs a small amount of devnet SOL to cover the network fee — this is separate from the USDC you're depositing, and every Solana transaction requires it. Get free devnet SOL from faucet.solana.com and try again.";
+
 function mapClientError(error: unknown): string {
   if (error instanceof Error) {
     if (/reject/i.test(error.message)) return "Transaction rejected. You can try again whenever you're ready.";
-    if (/insufficient/i.test(error.message))
-      return "Your wallet does not have enough USDC (or enough SOL to cover the network fee) for this transaction.";
+    // Wallets surface an insufficient-SOL-for-fees failure in inconsistent
+    // ways: some report it directly ("insufficient", "not enough SOL"),
+    // others only say their preflight "simulation" failed, and some (Phantom
+    // included, observed in practice) fall all the way back to wrapping it
+    // in wallet-adapter's generic "Unexpected error" with no further detail.
+    if (/insufficient|not enough sol|simulate|^unexpected error$/i.test(error.message)) {
+      return NEEDS_DEVNET_SOL_MESSAGE;
+    }
     if (/network|fetch/i.test(error.message)) return "Network unavailable. Please check your connection and try again.";
     return error.message;
   }
