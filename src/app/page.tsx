@@ -69,6 +69,40 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Proof, not promises */}
+        <section className="border-t border-border bg-surface">
+          <div className="mx-auto max-w-5xl px-5 py-20 sm:py-28">
+            <h2 className="text-center text-sm font-semibold uppercase tracking-widest text-ink-faint">
+              Proof, not promises
+            </h2>
+            <p className="mx-auto mt-3 max-w-lg text-center text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+              Don&apos;t trust the numbers. Check them.
+            </p>
+            <p className="mx-auto mt-4 max-w-xl text-center text-sm leading-relaxed text-ink-muted">
+              Everything below is something you can verify yourself, right now, not a claim you have to take on
+              faith.
+            </p>
+            <div className="mx-auto mt-14 grid max-w-3xl grid-cols-1 gap-8 sm:grid-cols-2">
+              <ProofPoint
+                title="Every deposit is re-checked on-chain"
+                body="The backend never trusts what your browser sends it — it independently re-reads your transaction from Solana devnet (destination, sender, amount, success) before crediting anything."
+              />
+              <ProofPoint
+                title="Every transaction has a receipt"
+                body="Deposits, accruals, redemptions and withdrawals all show up on your Transactions page, each linked to a real signature you can open directly on Solana Explorer."
+              />
+              <ProofPoint
+                title="Admin actions are logged, not silent"
+                body="Every product change, deposit decision, redemption and withdrawal an admin touches is written to an audit trail with who, what changed, and when."
+              />
+              <ProofPoint
+                title="Math you can re-derive by hand"
+                body="Returns are computed as exact integer ratios, not floating-point approximations — the same arithmetic the backend uses to credit your balance is documented in the source."
+              />
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section id="faq" className="border-t border-border bg-surface">
           <div className="mx-auto max-w-3xl px-5 py-20 sm:py-24">
@@ -89,6 +123,14 @@ export default function Home() {
               <FaqItem
                 q="What network does this run on?"
                 a="This prototype runs on Solana devnet. No real funds are used."
+              />
+              <FaqItem
+                q="Should I trust this with real money?"
+                a="No — this is a working prototype, not a live financial product. It exists to demonstrate how a wallet-first investment platform's verification, accrual and audit mechanics can be built end-to-end, on devnet only."
+              />
+              <FaqItem
+                q="I don't trust it yet. What should I do?"
+                a="Start with the smallest deposit you can make, then watch the whole cycle: your transaction confirm on-chain, your dashboard update, and the entry appear in your transaction history. Only then decide whether the rest holds up."
               />
             </div>
           </div>
@@ -124,6 +166,15 @@ function ExplainerStep({ n, title, body }: { n: string; title: string; body: str
       <span className="font-tabular text-xs font-semibold text-accent">{n}</span>
       <h3 className="mt-2 text-base font-semibold text-ink">{title}</h3>
       <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">{body}</p>
+    </div>
+  );
+}
+
+function ProofPoint({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-2xl border border-border bg-bg p-6 text-left">
+      <h3 className="text-sm font-semibold text-ink">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-ink-muted">{body}</p>
     </div>
   );
 }
